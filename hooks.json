@@ -1,0 +1,9 @@
+{
+  "hooks": [
+    {
+      "event": "before:tool:bash",
+      "command": "validate-no-production-targets.sh",
+      "description": "Prevents scanning external or production URLs — only localhost targets via repeater are allowed"
+    }
+  ]
+}

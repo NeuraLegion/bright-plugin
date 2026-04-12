@@ -1,0 +1,14 @@
+{
+  "name": "bright-security",
+  "description": "Bright DAST security scanning, automated fix generation, and validation for GitHub repositories",
+  "version": "1.0.0",
+  "author": {
+    "name": "BrightSec",
+    "email": "support@brightsec.com"
+  },
+  "license": "MIT",
+  "agents": "agents/",
+  "skills": "skills/",
+  "hooks": "hooks.json",
+  "mcpServers": ".mcp.json"
+}

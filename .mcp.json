@@ -1,0 +1,17 @@
+{
+  "mcpServers": {
+    "brightsec.com": {
+      "type": "http",
+      "url": "https://app.brightsec.com/mcp",
+      "tools": ["*"],
+      "oidc": {
+        "audience": "api://brightsec",
+        "endpoints": {
+          "exchange": "https://app.brightsec.com/token",
+          "revoke": "https://app.brightsec.com/revoke"
+        },
+        "agent-only-subject": false
+      }
+    }
+  }
+}
