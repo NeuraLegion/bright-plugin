@@ -1,16 +1,16 @@
 {
   "mcpServers": {
-    "brightsec.com": {
+    "bright": {
       "type": "http",
-      "url": "https://app.brightsec.com/mcp",
+      "url": "https://development.playground.brightsec.com/mcp",
       "tools": ["*"],
       "oidc": {
-        "audience": "api://brightsec",
+        "audience": "https://brightsec.com/",
+        "repo-only-subject": true,
         "endpoints": {
-          "exchange": "https://app.brightsec.com/token",
-          "revoke": "https://app.brightsec.com/revoke"
-        },
-        "agent-only-subject": false
+          "exchange": "https://development.playground.brightsec.com/api/v1/token",
+          "revoke": "https://development.playground.brightsec.com/api/v1/revoke"
+        }
       }
     }
   }
