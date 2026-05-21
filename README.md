@@ -99,4 +99,6 @@ copilot --agent bright-security:main \
 
 ## License
 
-MIT
+Copyright © 2026 [Bright Security Inc.](https://brightsec.com/)
+
+This project is licensed under the MIT License - see the [LICENSE file](LICENSE) for details.
