@@ -1,5 +1,5 @@
 ---
-name: testing-and-remediation-agent
+name: bright
 description: "Autonomously analyzes, builds, starts, prepares, authenticates, scans, fixes, and validates local applications with Bright DAST, including harness fallback when full startup fails"
 argument-hint: "A repository path, local application, or target description to build from source, test through Bright DAST, and optionally remediate"
 mcp-servers:

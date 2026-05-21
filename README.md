@@ -2,7 +2,7 @@
 
 A [GitHub AgentHQ Plugin](https://docs.github.com/en/copilot/concepts/agents/copilot-cli/about-cli-plugins) that runs **Bright DAST** from a single autonomous agent. The current agent can analyze the target repository, build and start the application, complete setup flows, prepare authentication, register entrypoints, run scans through a Repeater, and in full mode remediate and validate findings for up to 5 rounds.
 
-The plugin ships Bright MCP/OIDC configuration in the frontmatter of `agents/testing-and-remediation-agent.agent.md`. Bright integration is MCP-only and uses OIDC to keep credentials out of the repository.
+The plugin ships Bright MCP/OIDC configuration in the frontmatter of `agents/main.agent.md`. Bright integration is MCP-only and uses OIDC to keep credentials out of the repository.
 
 ## How It Works
 
@@ -28,7 +28,7 @@ copilot plugin install NeuraLegion/bright-plugin
 
 - [GitHub Copilot CLI](https://docs.github.com/en/copilot/how-tos/copilot-cli)
 - A [Bright](https://brightsec.com) environment that exposes the target project, repeaters, auth objects, entrypoints, and scans through MCP
-- Bright MCP access through the embedded `bright` server in the `mcp-servers` frontmatter of `agents/testing-and-remediation-agent.agent.md`
+- Bright MCP access through the embedded `bright` server in the `mcp-servers` frontmatter of `agents/main.agent.md`
 - OIDC support for the Bright MCP server
 
 ## Usage
@@ -37,11 +37,11 @@ From inside the repository you want to scan:
 
 ```bash
 # Interactive full remediation mode
-copilot --agent bright-security:testing-and-remediation-agent \
+copilot --agent bright-security:main \
   -i "Run a full Bright scan against this application, fix the findings, and validate the fixes"
 
 # Autopilot scan-only mode
-copilot --agent bright-security:testing-and-remediation-agent \
+copilot --agent bright-security:main \
   --autopilot \
   -p "Scan this application with Bright, report current-run findings only, and stop after the gate verdict"
 ```
@@ -50,7 +50,7 @@ copilot --agent bright-security:testing-and-remediation-agent \
 
 ```bash
 copilot --plugin-dir /path/to/bright-plugin \
-  --agent bright-security:testing-and-remediation-agent \
+  --agent bright-security:main \
   -i "Run a full Bright scan against this application"
 ```
 
@@ -64,7 +64,7 @@ You can steer the mode with the prompt, for example:
 
 | Component | Description |
 |-----------|-------------|
-| `agents/testing-and-remediation-agent.agent.md` | Single shipped agent. The filename-derived Copilot CLI agent ID is `testing-and-remediation-agent`, and the frontmatter embeds the `bright` MCP/OIDC server definition. |
+| `agents/main.agent.md` | Single shipped agent. The Copilot CLI agent ID is `main`, and the frontmatter `name` is `bright`. The frontmatter also embeds the `bright` MCP/OIDC server definition. |
 | `plugin.json` | Plugin manifest that points Copilot CLI at `agents/` and `hooks.json`. |
 | `hooks.json` + `validate-no-production-targets.sh` | Safety hook that blocks scan commands against non-local targets while allowing Bright control-plane URLs |
 
@@ -72,7 +72,7 @@ The agent frontmatter is the source of truth for the shipped Bright MCP configur
 
 ## Authentication
 
-MCP access is configured under the `bright` server in the `mcp-servers` frontmatter block of `agents/testing-and-remediation-agent.agent.md` and uses OIDC workload identity federation:
+MCP access is configured under the `bright` server in the `mcp-servers` frontmatter block of `agents/main.agent.md` and uses OIDC workload identity federation:
 
 - MCP URL: `https://development.playground.brightsec.com/mcp`
 - OIDC audience: `https://brightsec.com/`
@@ -84,7 +84,7 @@ The agent uses MCP only for Bright-side operations. If a required Bright capabil
 If you need to override MCP auth locally with an API key, target the same `bright` server entry:
 
 ```bash
-copilot --agent bright-security:testing-and-remediation-agent \
+copilot --agent bright-security:main \
   --additional-mcp-config '{"mcpServers":{"bright":{"type":"http","url":"https://development.playground.brightsec.com/mcp","headers":{"Authorization":"Api-Key YOUR_KEY"}}}}' \
   -i "Scan only and report current-run findings"
 ```
