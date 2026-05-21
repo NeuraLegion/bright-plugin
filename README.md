@@ -12,8 +12,8 @@ MCP Check -> Analyze Target -> Start App or Harness -> Setup + Scan Prep -> Auth
 
 The agent supports three runtime modes:
 
-- `full` (default): full startup, scan, remediation, and validation
-- `dynamic`: full startup and scanning only, without harness fallback
+- `full` (default): full startup, scan, remediation, and validation, with harness fallback available when needed
+- `dynamic`: full application startup without harness fallback; scanning and any requested remediation/validation still follow the prompt
 - `function`: lightweight harness-based function scanning
 
 If the prompt explicitly asks for scan-only behavior, the agent stops after reporting current-run findings and the gate verdict.
