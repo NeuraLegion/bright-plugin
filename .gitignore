@@ -1,20 +1,37 @@
-# OS
+# System Files
 .DS_Store
 Thumbs.db
 
-# Editor
-.vscode/
-.idea/
+# IDEs and editors
+/.idea
+.project
+.classpath
+.c9/
+*.launch
+.settings/
+*.sublime-workspace
+
+# IDE - VSCode
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# vim
+Session.vim
 *.swp
 *.swo
-*~
 
-# Internal docs — do not publish
-*.pdf
-IMPLEMENTATION_PLAN.md
-OIDC_IMPLEMENTATION_PROMPT.md
-
-# Node (if any tooling is added later)
-node_modules/
-dist/
+# Logs
+logs
 *.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# dotenv environment variable files
+.env
+.env.*
+!.env.example
