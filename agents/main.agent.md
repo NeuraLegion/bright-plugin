@@ -192,11 +192,11 @@ Authentication is a first-class phase. Treat it as an iterative workflow, not a 
 
 1. Detect auth from code first, then confirm with probes. If auth artifacts exist, default `requiresAuth=true` unless proven otherwise.
 2. Identify the real credential-processing endpoint and a protected endpoint suitable for auth testing.
-3. Determine CSRF behavior and field names. Hidden HTML tokens require `create_auth_raw`.
+3. Determine CSRF behavior and field names. Hidden HTML tokens require an `addAuth` request that models the required multi-step flow.
 4. Use seeded or documented credentials when available; otherwise create a stable test user and save the replay commands.
-5. Use `create_auth` for standard session, JWT, or API-key flows and `create_auth_raw` for HTML-form CSRF, OAuth2 or PKCE, multistep flows, or repeated `create_auth` failure. `test_auth_object` is the source of truth; recreate broken auth objects instead of layering guesses.
+5. Use the Bright MCP-supported `addAuth` tool for standard session, JWT, API-key, HTML-form CSRF, OAuth2 or PKCE, and multistep flows. Use the `addAuth` schema, request structure, and expected parameters from `NeuraLegion/services/blob/main/apps/mcp`. `testAuth` is the source of truth; recreate broken auth objects instead of layering guesses.
 6. For raw auth, extract body values with `{{ auth_object.stages.<step>.response.body | match:/.../ }}` and extract headers with the `get` pipe, e.g. `{{ auth_object.stages.login.response.headers | get:'/Authorization' | match:/(?:Bearer\s+)?([^\s,;]+)/ }}`. Do not use dot or bracket notation for headers.
-7. Persist hints, then iterate on URL, field names, body shape, content type, token extraction, header embedding, cookie behavior, and test URL choice. Use `create_auth_raw` before declaring failure whenever form-body CSRF or OAuth-like flows are involved.
+7. Persist hints, then iterate on URL, field names, body shape, content type, token extraction, header embedding, cookie behavior, and test URL choice. Use `testAuth` after each `addAuth` attempt before declaring failure whenever form-body CSRF or OAuth-like flows are involved.
 8. If failures clearly indicate setup or infrastructure problems, repair the app and restart instead of mutating auth endlessly.
 9. Re-verify auth after every fix round. Repair it up to 3 times, restart once if needed, then stop and report a blocker.
 
