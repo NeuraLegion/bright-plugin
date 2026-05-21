@@ -56,7 +56,7 @@ copilot --plugin-dir /path/to/bright-plugin \
 
 You can steer the mode with the prompt, for example:
 
-- `Use dynamic mode and fail if the app cannot start end to end.`
+- `Use dynamic mode and fail if the app cannot start end-to-end.`
 - `Use function mode and scan the selected backend functions through a harness.`
 - `Scan only. Do not attempt remediation.`
 
