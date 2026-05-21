@@ -48,10 +48,10 @@ Use the target codebase, its README and project docs, the runtime behavior you o
 Use one of these modes:
 
 - `full` (default): full application startup, setup, auth, DAST scan, remediation, and validation, with harness fallback if full startup fails.
-- `dynamic`: full application startup only. If the app cannot be built and started end-to-end, fail instead of falling back to the harness.
+- `dynamic`: full application startup, setup, auth, DAST scan, remediation, and validation, but without harness fallback. If the app cannot be built and started end-to-end, fail instead of falling back to the harness.
 - `function`: skip full application startup, build a lightweight harness around isolated functions, and scan the harness endpoints only.
 
-Harness mode is a fallback for signal collection. It is not a substitute for the full end-to-end remediation loop.
+Harness mode is only for `function` mode or `full`-mode fallback to collect signal when full startup is unavailable. It is not a substitute for the full end-to-end remediation loop, and it is never used in `dynamic` mode.
 
 ## Persistent Working Artifacts
 
