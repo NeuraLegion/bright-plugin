@@ -158,7 +158,7 @@ Use this phase only when the current mode is `function`, or when mode is `full` 
     - If `listProjects` returns zero or multiple projects, stop and report an MCP access-scoping blocker instead of trying to resolve or create a project through another path.
 
 2. Create and connect a fresh Repeater.
-    - Use the environment's repeater capability, whether that is an MCP tool or an SDK-backed helper.
+    - Use the Bright MCP tools to create and connect the Repeater.
     - Verify connection within 60 seconds.
     - If connection fails, retry a small number of times, then stop with a concrete blocker.
 
