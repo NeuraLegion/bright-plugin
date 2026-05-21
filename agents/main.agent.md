@@ -8,7 +8,7 @@ mcp-servers:
     url: https://development.playground.brightsec.com/mcp
     tools: ['*']
     oidc:
-      audience: 'https://brightsec.com/'
+      audience: 'https://brightsec.com/agents/github'
       repo-only-subject: true
       endpoints:
         exchange: 'https://development.playground.brightsec.com/api/v1/token'
