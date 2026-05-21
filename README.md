@@ -64,7 +64,7 @@ You can steer the mode with the prompt, for example:
 
 | Component | Description |
 |-----------|-------------|
-| `agents/main.agent.md` | Single shipped agent. The Copilot CLI agent ID is `main`, and the frontmatter `name` is `bright`. The frontmatter also embeds the `bright` MCP/OIDC server definition. |
+| `agents/main.agent.md` | Single shipped agent. The full Copilot CLI agent identifier is `bright-security:main`; `main` is the agent name within the `bright-security` plugin, and the frontmatter `name` is `bright`. The frontmatter also embeds the `bright` MCP/OIDC server definition. |
 | `plugin.json` | Plugin manifest that points Copilot CLI at `agents/` and `hooks.json`. |
 | `hooks.json` + `validate-no-production-targets.sh` | Safety hook that blocks scan commands against non-local targets while allowing Bright control-plane URLs |
 
