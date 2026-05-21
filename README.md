@@ -2,12 +2,12 @@
 
 A [GitHub AgentHQ Plugin](https://docs.github.com/en/copilot/concepts/agents/copilot-cli/about-cli-plugins) that runs **Bright DAST** from a single autonomous agent. The current agent can analyze the target repository, build and start the application, complete setup flows, prepare authentication, register entrypoints, run scans through a Repeater, and in full mode remediate and validate findings for up to 5 rounds.
 
-The plugin ships Bright MCP configuration in `.mcp.json` and keeps credentials out of the repository. MCP access uses OIDC, while direct Bright Cloud preflight and REST fallback use runtime environment variables.
+The plugin ships Bright MCP configuration in `.mcp.json` and keeps credentials out of the repository. Bright integration is MCP-only and uses OIDC for authentication.
 
 ## How It Works
 
 ```
-Bright Cloud Preflight -> Analyze Target -> Start App or Harness -> Setup + Scan Prep -> Auth -> Repeater + Entrypoints -> Scan -> [Fix -> Validate] x 5
+MCP Check -> Analyze Target -> Start App or Harness -> Setup + Scan Prep -> Auth -> Repeater + Entrypoints -> Scan -> [Fix -> Validate] x 5
 ```
 
 The agent supports three runtime modes:
@@ -27,19 +27,9 @@ copilot plugin install NeuraLegion/bright-plugin
 ## Runtime Requirements
 
 - [GitHub Copilot CLI](https://docs.github.com/en/copilot/how-tos/copilot-cli)
-- A [Bright](https://brightsec.com) environment that can create projects, repeaters, auth objects, entrypoints, and scans
-- `BRIGHT_TOKEN` for Bright Cloud REST preflight and fallback API calls
-- `BRIGHT_HOSTNAME` such as `development.playground.brightsec.com`
-- Optional `BRIGHT_PROJECT_ID`; if omitted, the agent will reuse or create a suitable Bright project
-
-Example environment setup:
-
-```bash
-export BRIGHT_HOSTNAME=development.playground.brightsec.com
-export BRIGHT_TOKEN=YOUR_BRIGHT_TOKEN
-# optional
-export BRIGHT_PROJECT_ID=YOUR_PROJECT_ID
-```
+- A [Bright](https://brightsec.com) environment that exposes the target project, repeaters, auth objects, entrypoints, and scans through MCP
+- Bright MCP access through the configured `bright` server in `.mcp.json`
+- OIDC support for the Bright MCP server
 
 ## Usage
 
@@ -89,7 +79,7 @@ MCP access is configured under the `bright` server in `.mcp.json` and uses OIDC 
 - Token endpoint: `https://development.playground.brightsec.com/api/v1/token`
 - Revoke endpoint: `https://development.playground.brightsec.com/api/v1/revoke`
 
-The agent also requires `BRIGHT_TOKEN` and `BRIGHT_HOSTNAME` at runtime because it performs a mandatory Bright Cloud preflight and uses direct REST API calls when MCP does not expose a required capability.
+The agent uses MCP only for Bright-side operations. If a required Bright capability is missing from MCP, the run should stop and report that limitation instead of falling back to REST.
 
 If you need to override MCP auth locally with an API key, target the same `bright` server entry:
 
