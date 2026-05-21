@@ -75,7 +75,7 @@ The agent frontmatter is the source of truth for the shipped Bright MCP configur
 MCP access is configured under the `bright` server in the `mcp-servers` frontmatter block of `agents/main.agent.md` and uses OIDC workload identity federation:
 
 - MCP URL: `https://development.playground.brightsec.com/mcp`
-- OIDC audience: `https://brightsec.com/`
+- OIDC audience: `https://brightsec.com/agents/github`
 - Token endpoint: `https://development.playground.brightsec.com/api/v1/token`
 - Revoke endpoint: `https://development.playground.brightsec.com/api/v1/revoke`
 
