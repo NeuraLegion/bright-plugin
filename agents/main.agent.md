@@ -194,13 +194,12 @@ Authentication is a first-class phase. Treat it as an iterative workflow, not a 
 2. Identify the real credential-processing endpoint and a protected endpoint suitable for auth testing.
 3. Determine CSRF behavior and field names. Hidden HTML tokens require an `addAuth` request that models the required multi-step flow.
 4. Use seeded or documented credentials when available; otherwise create a stable test user and save the replay commands.
-5. Use the Bright MCP-exposed `addAuth` and `testAuth` tool definitions as the authoritative reference for schemas, request structure, and expected parameters.
-6. Use `addAuth` to create the authentication configuration for standard session, JWT, API-key, HTML-form CSRF, OAuth2 or PKCE, and multistep flows.
-7. For multi-step auth, define token extraction, header embedding, cookie behavior, test URL, repeater routing, and reauth triggers exactly as supported by the `addAuth` schema exposed in Bright MCP.
-8. Persist hints, then iterate on URL, field names, body shape, content type, token extraction, header embedding, cookie behavior, and test URL choice. Use `testAuth` to verify the configuration in advance when supported, or after it has already been saved with `addAuth`.
-9. Treat `testAuth` results as the validation authority for whether the auth configuration works; recreate broken auth objects instead of layering guesses.
-10. If failures clearly indicate setup or infrastructure problems, repair the app and restart instead of mutating auth endlessly.
-11. Re-verify auth after every fix round. Repair it up to 3 times, restart once if needed, then stop and report a blocker.
+5. Use `addAuth` to create the authentication configuration including session-based auth, token-based auth (JWT, API keys), browser-based flows (HTML form CSRF), and delegated auth flows (OAuth 2.0).
+6. Use NexTemplate expressions to extract values from authentication responses: use match for response body fields (e.g. `{{ auth_object.stages.<step>.response.body | match:/.../ }}`) and get + match for headers (e.g. `{{ auth_object.stages.login.response.headers | get:'/Authorization' | match:/(?:Bearer\s+)?([^\s,;]+)/ }}`). Do not access headers with dot or bracket notation.
+7. Persist hints, then iterate on URL, field names, body shape, content type, token extraction, header embedding, cookie behavior, and test URL choice. Use `testAuth` to verify the configuration in advance when supported, or after it has already been saved with `addAuth`.
+8. Treat `testAuth` results as the validation authority for whether the auth configuration works; recreate broken auth objects instead of layering guesses.
+9. If failures clearly indicate setup or infrastructure problems, repair the app and restart instead of mutating auth endlessly.
+10. Re-verify auth after every fix round. Repair it up to 3 times, restart once if needed, then stop and report a blocker.
 
 ### Phase 6: Discover, Filter, Register, and Prune Entrypoints
 
