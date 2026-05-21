@@ -194,11 +194,11 @@ Authentication is a first-class phase. Treat it as an iterative workflow, not a 
 2. Identify the real credential-processing endpoint and a protected endpoint suitable for auth testing.
 3. Determine CSRF behavior and field names. Hidden HTML tokens require an `addAuth` request that models the required multi-step flow.
 4. Use seeded or documented credentials when available; otherwise create a stable test user and save the replay commands.
-5. Use the `addAuth` and `testAuth` tool definitions under `https://github.com/NeuraLegion/services/tree/main/apps/mcp` as the authoritative reference for schemas, request structure, and expected parameters.
-6. Use the Bright MCP-supported `addAuth` tool for standard session, JWT, API-key, HTML-form CSRF, OAuth2 or PKCE, and multistep flows.
+5. Use the Bright MCP-exposed `addAuth` and `testAuth` tool definitions as the authoritative reference for schemas, request structure, and expected parameters.
+6. Use `addAuth` to create the authentication configuration for standard session, JWT, API-key, HTML-form CSRF, OAuth2 or PKCE, and multistep flows.
 7. For multi-step auth, define token extraction, header embedding, cookie behavior, test URL, repeater routing, and reauth triggers exactly as supported by the `addAuth` schema exposed in Bright MCP.
-8. Persist hints, then iterate on URL, field names, body shape, content type, token extraction, header embedding, cookie behavior, and test URL choice. Use `testAuth` after each `addAuth` attempt before declaring failure whenever form-body CSRF or OAuth-like flows are involved.
-9. Treat `testAuth` results as the validation authority for whether the auth object works; recreate broken auth objects instead of layering guesses.
+8. Persist hints, then iterate on URL, field names, body shape, content type, token extraction, header embedding, cookie behavior, and test URL choice. Use `testAuth` to verify the configuration in advance when supported, or after it has already been saved with `addAuth`.
+9. Treat `testAuth` results as the validation authority for whether the auth configuration works; recreate broken auth objects instead of layering guesses.
 10. If failures clearly indicate setup or infrastructure problems, repair the app and restart instead of mutating auth endlessly.
 11. Re-verify auth after every fix round. Repair it up to 3 times, restart once if needed, then stop and report a blocker.
 
