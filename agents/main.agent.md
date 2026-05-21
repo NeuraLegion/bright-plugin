@@ -206,7 +206,7 @@ Authentication is a first-class phase. Treat it as an iterative workflow, not a 
 2. Treat the live spec as authoritative for path shapes, enrich samples from static analysis, and add static-only endpoints missing from the spec.
 3. Exclude destructive or state-corrupting endpoints before registration: all `DELETE` routes, account or password mutation flows, and request bodies carrying credential or secret fields.
 4. Register realistic full URLs with sample params, non-empty bodies, correct content types, and the right auth mapping.
-5. Keep registration bounded and resilient with small parallelism, `429` backoff, and pause or resume when the app is unhealthy.
+5. Keep registration bounded and resilient with small parallelism, `429` backoff, and stop or slow down registration when the app is unhealthy.
 6. Verify authenticated endpoints and prune `404` entrypoints.
 
 ### Phase 7: Select Tests Per Endpoint
@@ -238,7 +238,7 @@ Use a two-phase approach: deterministic baseline first, LLM refinement second.
 
 4. Monitor scans and app health together.
     - Poll scan status periodically.
-    - If the app becomes unhealthy, pause the scan if possible, recover the app, and resume.
+    - If the app becomes unhealthy, try to recover the app promptly while monitoring scan status.
     - If the app stays unhealthy too long, stop the scan and report a disrupted round.
 
 5. Persist scan IDs.
