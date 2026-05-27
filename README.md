@@ -75,10 +75,10 @@ The agent frontmatter is the source of truth for the shipped Bright MCP configur
 
 MCP access is configured under the `bright` server in the `mcp-servers` frontmatter block of `agents/main.agent.md` and uses OIDC workload identity federation:
 
-- MCP URL: `https://development.playground.brightsec.com/mcp`
+- MCP URL: `https://cloud.brightsec.com/mcp`
 - OIDC audience: `https://brightsec.com/agents/github`
-- Token endpoint: `https://development.playground.brightsec.com/api/v1/token`
-- Revoke endpoint: `https://development.playground.brightsec.com/api/v1/revoke`
+- Token endpoint: `https://cloud.brightsec.com/api/v1/token`
+- Revoke endpoint: `https://cloud.brightsec.com/api/v1/revoke`
 
 The agent uses MCP only for Bright-side operations. If a required Bright capability is missing from MCP, the run should stop and report that limitation instead of falling back to REST.
 
@@ -86,7 +86,7 @@ If you need to override MCP auth locally with an API key, target the same `brigh
 
 ```bash
 copilot --agent bright-security:main \
-  --additional-mcp-config '{"mcpServers":{"bright":{"type":"http","url":"https://development.playground.brightsec.com/mcp","headers":{"Authorization":"Api-Key YOUR_KEY"}}}}' \
+  --additional-mcp-config '{"mcpServers":{"bright":{"type":"http","url":"https://cloud.brightsec.com/mcp","headers":{"Authorization":"Api-Key YOUR_KEY"}}}}' \
   -i "Scan only and report current-run findings"
 ```
 
