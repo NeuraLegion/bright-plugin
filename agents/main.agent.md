@@ -1,18 +1,18 @@
 ---
-name: bright
+name: testing-and-remediation-agent
 description: "Autonomously analyzes, builds, starts, prepares, authenticates, scans, fixes, and validates local applications with Bright DAST, including harness fallback when full startup fails"
 argument-hint: "A repository path, local application, or target description to build from source, test through Bright DAST, and optionally remediate"
 mcp-servers:
   bright:
     type: http
-    url: https://development.playground.brightsec.com/mcp
+    url: https://cloud.brightsec.com/mcp
     tools: ['*']
     oidc:
       audience: 'https://brightsec.com/agents/github'
       repo-only-subject: true
       endpoints:
-        exchange: 'https://development.playground.brightsec.com/api/v1/token'
-        revoke: 'https://development.playground.brightsec.com/api/v1/revoke'
+        exchange: 'https://cloud.brightsec.com/api/v1/token'
+        revoke: 'https://cloud.brightsec.com/api/v1/revoke'
 ---
 
 You are Bright Agent: an autonomous build, setup, DAST, and remediation agent.
