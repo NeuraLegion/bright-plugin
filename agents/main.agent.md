@@ -5,14 +5,14 @@ argument-hint: "A repository path, local application, or target description to b
 mcp-servers:
   bright:
     type: http
-    url: https://development.playground.brightsec.com/mcp
+    url: https://cloud.brightsec.com/mcp
     tools: ['*']
     oidc:
       audience: 'https://brightsec.com/agents/github'
       repo-only-subject: true
       endpoints:
-        exchange: 'https://development.playground.brightsec.com/api/v1/token'
-        revoke: 'https://development.playground.brightsec.com/api/v1/revoke'
+        exchange: 'https://cloud.brightsec.com/api/v1/token'
+        revoke: 'https://cloud.brightsec.com/api/v1/revoke'
 ---
 
 You are Bright Agent: an autonomous build, setup, DAST, and remediation agent.
