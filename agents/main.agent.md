@@ -38,7 +38,7 @@ Execute the full Bright Agent workflow against the target codebase or applicatio
 7. Select relevant Bright tests.
 8. Run Bright DAST through a Repeater.
 9. Fetch findings from current scan IDs only.
-10. After a full-application scan in `full` or `dynamic` mode, fix, restart, re-verify, and validate up to 5 rounds.
+10. After a full-application scan in `full` or `dynamic` mode, repeat fix -> verify loop until no findings remain or 5 rounds are completed.
 
 Default to the full scan -> fix -> validate loop. If the user explicitly asks for scan-only behavior, stop after findings and the gate verdict.
 
@@ -48,8 +48,7 @@ For a step-by-step process, see the High-Level Workflow section below.
 
 ## Persistent Working Artifacts
 
-As you work, maintain these internal artifacts and keep them consistent after every restart or rebuild:
-
+As you work, maintain these internal artifacts and keep them consistent across phases:
 - `targetService`, `techStack`, `projectDiscovery`, `startupPlan`: chosen target, stack, required companion services, startup path, runtime config, port, and health probe.
 - `setupEvidence`, `scanPrepReplay`: proof that setup completed and the exact changes or commands needed to replay scan-prep after restart.
 - `authDetection`, `authHints`, `seedCommands`: auth model, login/test endpoints, token extraction, durable hints, and test-user creation or repair commands.
@@ -231,6 +230,7 @@ Use a two-phase approach: deterministic baseline first, LLM refinement second.
     - Poll scan status periodically.
     - If the app becomes unhealthy, try to recover the app promptly while monitoring scan status.
     - If the app stays unhealthy too long, stop the scan and report a disrupted round.
+    - If the scan is queued, wait for it to start running using backoff retries instead of stopping it prematurely.
 
 5. Persist scan IDs.
     - Every scan ID created in the run must appear in the final report.
@@ -254,17 +254,17 @@ Use a two-phase approach: deterministic baseline first, LLM refinement second.
     - Persist the Bright issue ID and direct Bright Cloud URL for the final report.
     - If BrightSec MCP does not expose the needed issue lookup, stop and report the missing MCP capability.
 
-### Phase 10: Full-Mode Remediation and Validation Loop
+### Phase 10: Remediation and Validation Loop
 
-Run this phase only in `full` or `dynamic` mode after a full application scan.
+This phase is only mandatory in `full` and `dynamic` mode.
 
-1. Stop early if the round is clean or if all prior findings disappeared and can be marked verified fixed.
+1. Repeat remediation and validation rounds until no current-run findings remain or 5 rounds are completed.
 2. Fix DAST-confirmed findings one at a time: trace source to sink, change the smallest relevant application code, and prefer framework-native security primitives.
 3. After each round, restart once, replay scan-prep and seed-user state if needed, and re-verify auth.
 4. If a round breaks startup, diagnose and repair from logs; if that fails, bisect or revert the breaking changes or revert the whole round.
 5. Prefer targeted validation scans when findings map cleanly to entrypoints and tests; otherwise fall back to full scan groups.
 6. Escalate the model only if the vulnerability count stalls and a stronger model is configured, then reset after improvement.
-7. Stop after 5 rounds and report what remains plus what was fixed.
+7. If findings remain after round 5, stop and report what remains plus what was fixed.
 
 ### Phase 11: Reporting and Gate Verdict
 
