@@ -147,8 +147,8 @@ Use this phase only in `function` mode, or as the explicit `full`-mode fallback 
     - If `listProjects` returns zero or multiple projects, stop and report an access or configuration issue instead of trying to guess which project to use.
 
 2. Create and connect a fresh Repeater.
-    - To test a local target, create a Repeater using the `createRepeater` tool and run it via Bright CLI in the same environment as the target app. The tool description provides the needed CLI command and arguments.
-    - If the Repeater fails to connect to Bright Cloud, retry up to 3 times. If it still fails, stop and report that outbound connections from the agent environment to Bright Cloud are blocked, typically by network or firewall rules.
+    - To test a local target, create a Repeater using the `createRepeater` tool, then run it using the `run-repeater` skill.
+    - Let the `run-repeater` skill handle secure configuration, readiness checks, and connection retries. If it reports a persistent connection failure, stop and report that outbound connections from the agent environment to Bright Cloud are blocked, typically by network or firewall rules.
 
 3. Use the Repeater for all local-target Bright operations.
     - Discovery, auth validation, entrypoint registration where relevant, and scans must route through the Repeater.
