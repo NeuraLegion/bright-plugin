@@ -64,8 +64,9 @@ You can steer the mode with the prompt, for example:
 
 | Component | Description |
 |-----------|-------------|
-| `agents/main.agent.md` | Single shipped agent. The full Copilot CLI agent identifier is `bright-security:main`; `main` is the agent name within the `bright-security` plugin, and the frontmatter `name` is `bright`. The frontmatter also embeds the `bright` MCP/OIDC server definition. |
-| `plugin.json` | Plugin manifest that points Copilot CLI at `agents/` and `hooks.json`. |
+| `agents/main.agent.md` | Single shipped agent. The full Copilot CLI agent identifier is `bright-security:main`; `main` is the agent name within the `bright-security` plugin, and the frontmatter `name` is `bright-agent`. The frontmatter also embeds the `bright` MCP/OIDC server definition. |
+| `skills/run-repeater/SKILL.md` | Focused workflow for running a Bright Repeater with `bright-cli --config`. |
+| `plugin.json` | Plugin manifest that points Copilot CLI at `agents/`, `skills/`, and `hooks.json`. |
 | `hooks.json` + `validate-no-production-targets.sh` | Safety hook that blocks scan commands against non-local targets while allowing Bright control-plane URLs |
 
 The agent frontmatter is the source of truth for the shipped Bright MCP configuration.
