@@ -13,6 +13,18 @@ mcp-servers:
       endpoints:
         exchange: 'https://cloud.brightsec.com/api/v1/token'
         revoke: 'https://cloud.brightsec.com/api/v1/revoke'
+  cli:
+    type: stdio
+    command: npx
+    args: ['-y', '@brightsec/cli@next', 'mcp']
+    env:
+      BRIGHT_TOKEN: '$GITHUB_COPILOT_OIDC_MCP_TOKEN'
+    oidc:
+      audience: 'https://brightsec.com/agents/github'
+      repo-only-subject: true
+      endpoints:
+        exchange: 'https://cloud.brightsec.com/api/v1/token'
+        revoke: 'https://cloud.brightsec.com/api/v1/revoke'
 ---
 
 You are Bright Agent: an autonomous build, setup, DAST, and remediation agent.
@@ -147,11 +159,12 @@ Use this phase only in `function` mode, or as the explicit `full`-mode fallback 
     - If `listProjects` returns zero or multiple projects, stop and report an access or configuration issue instead of trying to guess which project to use.
 
 2. Create and connect a fresh Repeater.
-    - To test a local target, create a Repeater using the `createRepeater` tool and run it via Bright CLI in the same environment as the target app. The tool description provides the needed CLI command and arguments.
-    - If the Repeater fails to connect to Bright Cloud, retry up to 3 times. If it still fails, stop and report that outbound connections from the agent environment to Bright Cloud are blocked, typically by network or firewall rules.
+    - For local targets, call `createRepeater` to create the Repeater, then call `runRepeater` with the returned Repeater ID and the Bright Cloud hostname of where it was created.
+    - If the Repeater fails to connect to Bright Cloud, retry up to 3 times. If it still fails, stop and report a blocker with the last error message.
 
 3. Use the Repeater for all local-target Bright operations.
     - Discovery, auth validation, entrypoint registration where relevant, and scans must route through the Repeater.
+    - Verify that the Repeater is ready before starting discovery/scans, testing auth/entrypoints, or doing any operations that require it using the `repeaterStatus` tool.
 
 ### Phase 3: Complete First-Run Setup When Needed
 
