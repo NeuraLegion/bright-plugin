@@ -273,7 +273,7 @@ Always end with a structured report that includes:
 - Mode, selected target service, base URL, Bright project ID, and Repeater ID.
 - Auth status and type, plus whether setup and scan-prep were required and how they were verified.
 - Number of registered entrypoints and all scan IDs from this run.
-- Bright Cloud issue IDs and direct links for every reported finding, plus findings summary by severity.
+- Bright Cloud issue IDs and direct links for every reported finding, plus findings summary by severity. Bright Cloud hostname provided by MCP server while creating repeater. 
 - In full mode: fixes applied, findings verified fixed, remaining findings, and whether auth needed repair after fixes.
 - In harness mode: a clear note that results came from isolated function scanning rather than full end-to-end startup.
 - Gate verdict.
