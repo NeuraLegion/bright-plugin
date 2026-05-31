@@ -65,7 +65,7 @@ As you work, maintain these internal artifacts and keep them consistent across p
 - `targetService`, `techStack`, `projectDiscovery`, `startupPlan`: chosen target, stack, required companion services, startup path, runtime config, port, and health probe.
 - `setupEvidence`, `scanPrepReplay`: proof that setup completed and the exact changes or commands needed to replay scan-prep after restart.
 - `authDetection`, `authHints`, `seedCommands`: auth model, login/test endpoints, token extraction, durable hints, and test-user creation or repair commands.
-- `registeredEntrypoints`, `scanGroups`, `scanIds`: registered attack surface, grouped scan plans, and every scan ID created in this run.
+- `registeredEntrypoints`, `scanGroups`, `scanIds`: registered attack surface, the per-endpoint test map and ordered list of atomic scan units, and every scan ID created in this run.
 - `allFindings`, `brightIssueLinks`, `fixedKeys`: deduplicated current-run findings, Bright Cloud issue links, and findings verified fixed in later rounds.
 
 ## Non-Negotiable Rules
@@ -79,6 +79,8 @@ As you work, maintain these internal artifacts and keep them consistent across p
 - Keep remediation changes in application code. Infrastructure, container, proxy, and deployment changes belong to startup or infra-repair.
 - Exclude destructive or state-corrupting endpoints from scanning.
 - Route Bright operations through a Repeater and pass repeaters as arrays where supported.
+- Run scans as atomic units of 1–3 entrypoints each with only tests confirmed relevant by reading the handler code. Never create a single scan covering all entrypoints.
+- Run atomic scan units strictly sequentially — wait for each scan to finish before starting the next.
 - Keep scan, repeater, and auth object IDs in the final report.
 - Use only BrightSec MCP for Bright-side operations. If the needed Bright capability is unavailable in MCP, stop and report the MCP limitation instead of falling back to another interface.
 - Always clean up scans, repeaters, processes, and temporary infrastructure.
@@ -213,40 +215,82 @@ Authentication is a first-class phase. Treat it as an iterative workflow, not a 
 5. Keep registration bounded and resilient with small parallelism, `429` backoff, and stop or slow down registration when the app is unhealthy.
 6. Verify authenticated endpoints and prune `404` entrypoints.
 
-### Phase 7: Select Tests Per Endpoint
+### Phase 7: Code-Informed Per-Endpoint Test Selection
 
-Use a two-phase approach: deterministic baseline first, LLM refinement second.
+For every registered entrypoint, read the actual handler source code (controller → service → repository chain) and build a precise, minimal test set. Do not assign tests based on endpoint name or URL pattern alone — read the code.
 
-1. Start with the deterministic baseline: `secret_tokens`, `full_path_disclosure`, `http_method_fuzzing`, `version_control_systems`, `open_cloud_storage`, `cve_test`.
-2. Add input-driven tests only where inputs exist, e.g. `sqli`, `xss`, `stored_xss`, `ssti`, `osi`, `lfi`, `rfi`, `xxe`, `xpathi`, `ldapi`, `nosql`, `ssrf`, `unvalidated_redirect`, `server_side_js_injection`, `proto_pollution`, `prompt_injection`, `email_injection`.
-3. Add semantic heuristics: auth or login -> `brute_force_login`, `csrf`, `jwt`; upload or import -> `file_upload`; search or query -> `sqli`, `xss`, `nosql`; user or object -> `id_enumeration`, `bopla`, `excessive_data_exposure`; GraphQL -> `graphql_introspection`; URL, proxy, webhook, callback, or fetch -> `ssrf`; command-like -> `osi`; XML-heavy -> `xxe`, `xpathi`; AI or RAG surfaces -> `prompt_injection`, `insecure_output_handling`.
-4. Add stack heuristics: SQL -> `sqli`, NoSQL -> `nosql`, JS or TS -> `proto_pollution`, `server_side_js_injection`, `retire_js` when relevant, Java or XML-heavy -> `xxe`, `xpathi`.
-5. Exclude `lrrl`, `header_security`, `cookie_security`, and scan-level multi-auth tests such as `broken_access_control` unless the environment can safely coordinate multiple auth contexts.
-6. Let the LLM refine adds and removals based on endpoint semantics.
+**Step 1 — Universal baseline (apply to every endpoint):**
+`secret_tokens`, `full_path_disclosure`, `http_method_fuzzing`, `version_control_systems`, `open_cloud_storage`, `cve_test`.
 
-### Phase 8: Run Scans and Keep the Target Healthy
+**Step 2 — Code-driven inclusion rules (only add a test if the code evidence is present):**
 
-1. Group endpoints by compatible test sets.
-    - Reuse shared test sets to reduce scan count.
-    - Keep path-parameter endpoints on groups that include `path` in attack locations.
+| Add test | Only if the handler code evidence shows… |
+|---|---|
+| `sqli` | Direct SQL query construction or a SQL ORM call with user-supplied input |
+| `xss` | Response body or template that reflects user input without escaping |
+| `stored_xss` | User input written to a data store and later rendered in a response |
+| `ssti` | Template engine called with user-controlled string (Jinja2, Twig, Handlebars, Pug, etc.) |
+| `osi` | `exec`, `spawn`, `system`, `popen`, `child_process`, or shell invocation with user input |
+| `lfi` / `rfi` | File path or URL constructed from user input and opened or included |
+| `ssrf` | HTTP client (`fetch`, `axios`, `requests`, `curl`, etc.) called with a URL derived from user input |
+| `xxe` | XML parser (`DOMParser`, `libxml2`, `SAXParser`, etc.) processing user-supplied content |
+| `xpathi` | XPath query built with user-supplied input |
+| `ldapi` | LDAP query constructed with user-supplied input |
+| `unvalidated_redirect` | `Location` or redirect target built from user input |
+| `server_side_js_injection` | `eval`, `Function()`, `vm.runInNewContext`, or dynamic `require` with user input |
+| `proto_pollution` | Object merge, deep clone, or JSON parse into a shared prototype chain |
+| `email_injection` | Email headers or body constructed from user input |
+| `prompt_injection` / `insecure_output_handling` | LLM API call or RAG pipeline with user-controlled prompt content |
+| `file_upload` | Multipart upload endpoint that writes files to disk or object storage |
+| `brute_force_login` / `csrf` | Login, password-reset, or session-mutation endpoint |
+| `jwt` | Endpoint that decodes or validates a JWT token |
+| `graphql_introspection` | GraphQL resolver or schema endpoint |
+| `sqli`, `xss` | Search, filter, or query endpoint with user-supplied parameters |
+| `id_enumeration`, `bopla`, `excessive_data_exposure` | Resource lookup by a numeric or sequential ID in path or query |
 
-2. Start scans with Bright.
+**Step 3 — Exclusions (always):**
+Never assign `lrrl`, `header_security`, `cookie_security`, or `broken_access_control` unless the environment can safely coordinate multiple auth contexts.
+
+**Step 4 — Output:**
+Produce a per-endpoint map `{ endpoint, tests[], attackLocations[] }`. Endpoints with no code evidence beyond the baseline receive only baseline tests. Log the rationale for each non-baseline test so the decision is auditable.
+
+### Phase 8: Run Atomic Scans Sequentially and Keep the Target Healthy
+
+Do NOT create one large scan for all entrypoints. Run small, focused scans one at a time to stay within agent time limits and get actionable results faster.
+
+1. **Partition entrypoints into atomic scan units.**
+    - Each scan unit contains 1–3 entrypoints that share the same test set and attack locations.
+    - Group only when the entrypoints have an identical test set AND identical attack locations. Otherwise keep them as separate units.
+    - Prioritize: place units whose test sets include high-signal injection tests (`sqli`, `xss`, `osi`, `ssrf`) first.
+
+2. **Process units strictly one at a time.**
+    - Start the first scan unit.
+    - Wait for that scan to reach a terminal state (`done`, `failed`, or `disrupted`) before starting the next unit.
+    - Do not launch the next unit until the previous one is finished.
+    - This sequencing is mandatory — parallel scans are forbidden in this phase.
+
+3. **Start each scan with Bright.**
     - Always include the Repeater.
     - Use `body`, `query`, and `fragment` attack locations by default.
     - Add `path` when the endpoint has path parameters.
     - Prefer smart scanning behavior and avoid needless rate limiting.
+    - Pass only the tests selected for that specific unit from Phase 7.
 
-3. Recover automatically from scan launch errors.
-    - If scan creation fails with an incompatible test set, remove the problematic tests and retry.
-    - If a group is still rejected and has many entrypoints, split it into smaller groups and retry.
+4. **Recover automatically from scan launch errors.**
+    - If scan creation fails with an incompatible test set, remove the problematic test and retry the same unit.
+    - If the unit is still rejected, split it to a single entrypoint and retry.
 
-4. Monitor scans and app health together.
-    - Poll scan status periodically.
-    - If the app becomes unhealthy, try to recover the app promptly while monitoring scan status.
-    - If the app stays unhealthy too long, stop the scan and report a disrupted round.
-    - If the scan is queued, wait for it to start running using backoff retries instead of stopping it prematurely.
+5. **Monitor each scan and app health together.**
+    - Poll scan status periodically while the scan is running.
+    - If the app becomes unhealthy, pause the polling loop, try to recover the app, then resume.
+    - If the app stays unhealthy for more than 3 recovery attempts, stop the active scan and report a disrupted round.
+    - If a scan is queued, wait for it to start running using backoff retries before declaring it stalled.
 
-5. Persist scan IDs.
+6. **Fetch and record findings after each scan completes.**
+    - Do not wait until all units are done. Collect findings immediately after each scan finishes.
+    - This ensures partial results are available even if the agent run is interrupted.
+
+7. **Persist scan IDs.**
     - Every scan ID created in the run must appear in the final report.
 
 ### Phase 9: Fetch Findings From the Current Run Only
