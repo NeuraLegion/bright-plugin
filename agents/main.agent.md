@@ -77,7 +77,7 @@ As you work, maintain these internal artifacts and keep them consistent across p
 - Give each scan unit its full 15-minute window. Do not prematurely stop a scan at 5 or 10 minutes because it has not finished yet — only stop a unit if it exceeds 15 minutes, then split it and continue.
 - Keep scan, repeater, and auth object IDs in the final report.
 - Use only BrightSec MCP for Bright-side operations. If the needed Bright capability is unavailable in MCP, stop and report the MCP limitation instead of falling back to another interface.
-- Always clean up scans, repeaters, processes, and temporary infrastructure — including resources orphaned by previous failed runs of this agent.
+- Always stop active scans, delete repeaters, stop processes and temporary infrastructure — including resources orphaned by previous failed runs of this agent.
 
 ## Execution Context
 
@@ -210,7 +210,7 @@ Authentication is a first-class phase. Treat it as an iterative workflow, not a 
 10. If failures clearly indicate setup or infrastructure problems, repair the app and restart instead of mutating auth endlessly.
 11. Re-verify auth after every fix round. Repair it up to **5 times**, restart once if needed, then stop and report a blocker (or, in `full` mode, fall back to `function` mode per the Modes section).
 
-**Second auth context (only when needed for access-control testing):** if Phase 7 selects `broken_access_control`, create a second, distinct auth object in this phase — typically a second user (a lower-privilege user for vertical checks, or a different same-role user for horizontal checks). Validate both with `testAuth` and keep both auth object IDs; they are passed together into the relevant scan units in Phase 8.
+**Multiple auth contexts for access-control testing:** If the application has role-based or user-scoped access controls, and it is reasonable and possible to do so, create additional auth objects with different access levels — typically a lower-privilege user for vertical access-control checks, or a different same-role user for horizontal checks. Validate each with `testAuth` and keep all auth object IDs; they are passed together into the relevant scan units in Phase 8.
 
 ### Phase 6: Discover, Filter, Register, and Prune Entrypoints
 
@@ -226,8 +226,8 @@ Authentication is a first-class phase. Treat it as an iterative workflow, not a 
 
 For every registered entrypoint, read the actual handler source code (controller → service → repository chain) and build a precise, minimal test set. Do not assign tests based on endpoint name or URL pattern alone — read the code. A tight, code-justified test set is the single biggest lever for staying inside the 60-minute budget: broad units with many entrypoints and loosely chosen tests run long and largely in vain.
 
-**Step 1 — Efficient baseline (default-empty):**
-Start with an empty per-endpoint test set. Add tests only when handler-code evidence supports them. Do not force a universal baseline on every endpoint.
+**Step 1 — Code-informed selection (start empty):**
+Start with an empty per-endpoint test set. Add tests only when handler-code evidence supports them.
 
 **Step 2 — Inclusion rules from code + runtime evidence:**
 
@@ -262,22 +262,21 @@ Start with an empty per-endpoint test set. Add tests only when handler-code evid
 | `id_enumeration` | Resource lookup uses predictable IDs and responses differ between valid/invalid IDs enough to enumerate objects. |
 | `bopla` | API accepts object-property mutation where the client can set sensitive/internal fields (`role`, `isAdmin`, ownership, flags). |
 | `excessive_data_exposure` | Backend returns broad object payloads where the client/UI filters sensitive fields instead of server-side minimization. |
-| `header_security` | Responses set or omit security-relevant headers (CSP, HSTS, X-Frame-Options, X-Content-Type-Options, etc.). Cheap response-level check; safe to apply broadly. |
-| `cookie_security` | The app sets cookies (session/auth) whose flags (`Secure`, `HttpOnly`, `SameSite`) should be validated. Cheap response-level check; safe to apply broadly. |
-| `broken_access_control` | An authenticated, object- or role-scoped endpoint may allow access across users/roles. **Requires two distinct auth objects from Phase 5**, passed together into the scan unit (Phase 8). Only assign when both auth contexts were created and validated. |
+| `header_security` | Responses include or omit security-relevant headers (CSP, HSTS, X-Frame-Options, X-Content-Type-Options, Referrer-Policy). Run once per host. |
+| `cookie_security` | The app sets cookies — validate their Secure, HttpOnly, and SameSite flags. Run once per host. |
+| `broken_access_control` | An authenticated, object- or role-scoped endpoint may allow access across users or roles. Assign when at least two auth objects are available from Phase 5. |
 
 **Step 2B — Burden-aware guardrails:**
 
 - Request-heavy tests must require strong, concrete exploitability evidence and run in their own atomic unit of a single entrypoint so one expensive test cannot blow the 15-minute budget of a whole group. This applies especially to `id_enumeration` and the injection-class tests (`sqli`, `xss`, `stored_xss`, `ssti`, `osi`, `lfi`, `rfi`, `ssrf`, `xxe`, `xpathi`, `ldapi`, `server_side_js_injection`, `proto_pollution`, `prompt_injection`, `full_path_disclosure`).
-- Host-level checks (`cve_test`, host-wide `jwt`, `version_control_systems`) run once per host, not per endpoint.
-- Cheap response-level checks (`header_security`, `cookie_security`) may be applied broadly at low cost.
+- Host-level checks (`cve_test`, host-wide `jwt`, `version_control_systems`, `header_security`, `cookie_security`) run once per host, not per endpoint.
 
 **Step 3 — Output:**
 Produce a per-endpoint map `{ endpoint, tests[], attackLocations[] }`. Endpoints with no code evidence keep an empty test set and are skipped from active scanning. Log the rationale for each assigned test so the decision is auditable.
 
 ### Phase 8: Run Atomic Scans Sequentially and Keep the Target Healthy
 
-Do NOT create one large scan for all entrypoints. Run small, focused scans one at a time to stay within the agent's wall-clock budget and get actionable results faster. With a ~60-minute total budget and a 15-minute ceiling per unit, only a handful of units will run — partition aggressively and prioritize the highest-signal ones.
+Do NOT create one large scan for all entrypoints. Run small, focused scans one at a time to get actionable results faster. With a 15-minute ceiling per unit, only a handful of units will complete — partition aggressively and prioritize the highest-signal ones first so the most important coverage is always done before reporting.
 
 1. **Partition entrypoints into atomic scan units.**
     - Default to a single entrypoint per unit. Group up to 3 only when they share an identical test set AND identical attack locations; otherwise keep them separate.
@@ -365,12 +364,12 @@ Include a severity count summary (critical/high/medium/low).
 Always do cleanup, even on failure.
 
 - Stop any running scans that are still active.
-- Delete or stop the Repeater created for the run.
+- Delete the Repeater created for the run.
 - Stop the application or harness process.
 - Stop temporary standalone infrastructure started only for harness mode.
 - Remove temporary artifacts you created.
 - Revert temporary source or config changes introduced only for scan-prep or operability when they are not security fixes; keep only validated security remediations.
-- Re-check for orphaned `bright-agent-` resources (repeaters/scans) and clean any this run left behind.
+- Re-check for orphaned `bright-agent-` repeaters and stop any orphaned scans this run left behind.
 
 ## Definition of Done
 
