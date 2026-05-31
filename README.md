@@ -1,20 +1,26 @@
 # Bright Security Plugin for GitHub AgentHQ
 
-A [GitHub AgentHQ Plugin](https://docs.github.com/en/copilot/concepts/agents/copilot-cli/about-cli-plugins) that runs **Bright DAST** from a single autonomous agent. The current agent can analyze the target repository, build and start the application, complete setup flows, prepare authentication, register entrypoints, run scans through a Repeater, and in full mode remediate and validate findings for up to 5 rounds.
+A [GitHub AgentHQ Plugin](https://docs.github.com/en/copilot/concepts/agents/copilot-cli/about-cli-plugins) that runs **Bright DAST** from a single autonomous agent. The agent analyzes the target repository, builds and starts the application, prepares authentication, registers entrypoints, runs scans through a Repeater, and remediates and validates findings for up to 5 rounds. It supports both whole-application and pull-request-scoped runs, and the entire run completes within ~60 minutes.
 
 The plugin ships Bright MCP/OIDC configuration in the frontmatter of `agents/main.agent.md`. Bright integration is MCP-only and uses OIDC to keep credentials out of the repository.
 
 ## How It Works
 
 ```
-MCP Check -> Analyze Target -> Start App or Harness -> Setup + Scan Prep -> Auth -> Repeater + Entrypoints -> Scan -> [Fix -> Validate] x 5
+Resolve Scope -> MCP Check -> Analyze Target -> Start App or Harness -> Setup + Scan Prep -> Auth -> Repeater + Entrypoints -> Scan -> [Fix -> Validate] x 5
 ```
 
-The agent supports three runtime modes:
+### Run scope
 
-- `full` (default): full startup, scan, remediation, and validation, with harness fallback available when needed
-- `dynamic`: full application startup without harness fallback; scanning and any requested remediation/validation still follow the prompt
-- `function`: lightweight harness-based function scanning
+A run targets either the whole application or the changes in a single pull request:
+
+- **Whole-application** (default): scans the entire registered surface
+- **PR-scoped**: agent traces changed code to affected endpoints and restricts registration and scanning to those endpoints only; falls back to function mode if no endpoint can be traced
+
+### Runtime modes
+
+- `full` (default): full application startup, scan, remediation, and validation; falls back to `function` mode after 3 failed startup retries or 5 failed auth attempts
+- `function`: lightweight harness-based scanning targeting specific functions; also used automatically for PR-scoped runs where changed code cannot be traced to an endpoint
 
 If the prompt explicitly asks for scan-only behavior, the agent stops after reporting current-run findings and the gate verdict.
 
@@ -40,6 +46,10 @@ From inside the repository you want to scan:
 copilot --agent bright-security:main \
   -i "Run a full Bright scan against this application, fix the findings, and validate the fixes"
 
+# PR-scoped scan (only endpoints affected by the current branch)
+copilot --agent bright-security:main \
+  -i "Run a PR-scoped Bright scan for this pull request, fix confirmed findings, and validate the fixes"
+
 # Autopilot scan-only mode
 copilot --agent bright-security:main \
   --autopilot \
@@ -54,10 +64,10 @@ copilot --plugin-dir /path/to/bright-plugin \
   -i "Run a full Bright scan against this application"
 ```
 
-You can steer the mode with the prompt, for example:
+You can steer the mode and scope with the prompt, for example:
 
-- `Use dynamic mode and fail if the app cannot start end-to-end.`
-- `Use function mode and scan the selected backend functions through a harness.`
+- `Run in function mode and scan the selected backend functions through a harness.`
+- `Run a PR-scoped scan for PR #42.`
 - `Scan only. Do not attempt remediation.`
 
 ## Plugin Contents
@@ -95,7 +105,8 @@ copilot --agent bright-security:main \
 - Bright Cloud URLs are allowed for control-plane operations such as project, repeater, auth, and scan management
 - Destructive or state-corrupting endpoints are excluded before registration
 - Findings are reported from the current run's scan IDs only
-- The agent is expected to clean up scans, repeaters, and temporary processes at the end of the run
+- All resources created by the agent are prefixed with `bright-agent-`; orphaned resources from previous failed runs are cleaned up at startup
+- The agent cleans up scans, repeaters, and temporary processes at the end of the run
 
 ## License
 
