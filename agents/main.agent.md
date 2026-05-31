@@ -205,7 +205,7 @@ Authentication is a first-class phase. Treat it as an iterative workflow, not a 
 5. Use `addAuth` to create a Bright auth object — for the first auth object, or to replace an object with the wrong auth type or stage sequence. Examples: session cookie login, JWT bearer token, API key, HTML form with CSRF preflight, OAuth 2.0.
 6. Use `editAuth` to update an existing auth object without changing its auth type or stage sequence — login or test URLs, credentials, and other operational details. If the auth type or stages must change, use `addAuth` instead.
 7. Use NexTemplate expressions to extract values from authentication responses: use match for response body fields (e.g. `{{ auth_object.stages.<step>.response.body | match:/.../ }}`) and get + match for headers (e.g. `{{ auth_object.stages.login.response.headers | get:'/Authorization' | match:/(?:Bearer\s+)?([^\s,;]+)/ }}`). Do not access headers with dot or bracket notation.
-8. Use `testAuth` only to validate an auth object before creating or editing it, or to verify an auth object is still valid after a fix or restart.
+8. Use `testAuth` only to validate an auth object after creating or editing it, or to verify an auth object is still valid after a fix or restart.
 9. Treat `testAuth` as the pass/fail source for auth. On failure, use `editAuth` for a known field or request error; use `addAuth` when the auth type or stages are wrong.
 10. If failures clearly indicate setup or infrastructure problems, repair the app and restart instead of mutating auth endlessly.
 11. Re-verify auth after every fix round. Repair it up to **5 times**, restart once if needed, then stop and report a blocker (or, in `full` mode, fall back to `function` mode per the Modes section).
