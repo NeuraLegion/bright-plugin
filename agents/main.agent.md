@@ -81,6 +81,7 @@ As you work, maintain these internal artifacts and keep them consistent across p
 - Route Bright operations through a Repeater and pass repeaters as arrays where supported.
 - Run scans as atomic units of 1–3 entrypoints each with only tests confirmed relevant by reading the handler code. Never create a single scan covering all entrypoints.
 - Run atomic scan units strictly sequentially — wait for each scan to finish before starting the next.
+- Keep each individual scan unit time-bounded to 15 minutes. If a scan unit runs longer, split it into smaller units (by tests and/or entrypoints) and continue sequentially.
 - Keep scan, repeater, and auth object IDs in the final report.
 - Use only BrightSec MCP for Bright-side operations. If the needed Bright capability is unavailable in MCP, stop and report the MCP limitation instead of falling back to another interface.
 - Always clean up scans, repeaters, processes, and temporary infrastructure.
@@ -290,6 +291,8 @@ Do NOT create one large scan for all entrypoints. Run small, focused scans one a
     - Wait for that scan to reach a terminal state (`done`, `failed`, or `disrupted`) before starting the next unit.
     - Do not launch the next unit until the previous one is finished.
     - This sequencing is mandatory — parallel scans are forbidden in this phase.
+    - Enforce a 15-minute maximum runtime per scan unit.
+    - If a scan unit exceeds 15 minutes, stop it when possible, split it into smaller scans (first by reducing test set, then by entrypoints if needed), and rerun those smaller units sequentially.
 
 3. **Start each scan with Bright.**
     - Always include the Repeater.
