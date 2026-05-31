@@ -210,7 +210,7 @@ Authentication is a first-class phase. Treat it as an iterative workflow, not a 
 
 1. Build the endpoint inventory from static route analysis plus live OpenAPI or Swagger probing.
 2. Treat the live spec as authoritative for path shapes, enrich samples from static analysis, and add static-only endpoints missing from the spec.
-3. Exclude destructive or state-corrupting endpoints before registration: all `DELETE` routes, account or password mutation flows, and request bodies carrying credential or secret fields.
+3. Exclude destructive or state-corrupting endpoints before registration: all `DELETE` routes and irreversible account-destruction flows.
 4. Register realistic full URLs with sample params, non-empty bodies, correct content types, and the right auth mapping.
 5. Keep registration bounded and resilient with small parallelism, `429` backoff, and stop or slow down registration when the app is unhealthy.
 6. Verify authenticated endpoints and prune `404` entrypoints.
@@ -219,40 +219,62 @@ Authentication is a first-class phase. Treat it as an iterative workflow, not a 
 
 For every registered entrypoint, read the actual handler source code (controller → service → repository chain) and build a precise, minimal test set. Do not assign tests based on endpoint name or URL pattern alone — read the code.
 
-**Step 1 — Universal baseline (apply to every endpoint):**
-`secret_tokens`, `full_path_disclosure`, `http_method_fuzzing`, `version_control_systems`, `open_cloud_storage`, `cve_test`.
+**Step 1 — Efficient baseline (default-empty):**
+Start with an empty per-endpoint test set. Add tests only when handler-code evidence supports them. To keep scans fast, do not force a universal baseline on every endpoint.
 
-**Step 2 — Code-driven inclusion rules (only add a test if the code evidence is present):**
+**Step 2 — Inclusion rules from code + runtime evidence:**
 
-| Add test | Only if the handler code evidence shows… |
+| Add test | Add only when evidence shows... |
 |---|---|
-| `sqli` | Direct SQL query construction or a SQL ORM call with user-supplied input |
-| `xss` | Response body or template that reflects user input without escaping |
-| `stored_xss` | User input written to a data store and later rendered in a response |
-| `ssti` | Template engine called with user-controlled string (Jinja2, Twig, Handlebars, Pug, etc.) |
-| `osi` | `exec`, `spawn`, `system`, `popen`, `child_process`, or shell invocation with user input |
-| `lfi` / `rfi` | File path or URL constructed from user input and opened or included |
-| `ssrf` | HTTP client (`fetch`, `axios`, `requests`, `curl`, etc.) called with a URL derived from user input |
-| `xxe` | XML parser (`DOMParser`, `libxml2`, `SAXParser`, etc.) processing user-supplied content |
-| `xpathi` | XPath query built with user-supplied input |
-| `ldapi` | LDAP query constructed with user-supplied input |
-| `unvalidated_redirect` | `Location` or redirect target built from user input |
-| `server_side_js_injection` | `eval`, `Function()`, `vm.runInNewContext`, or dynamic `require` with user input |
-| `proto_pollution` | Object merge, deep clone, or JSON parse into a shared prototype chain |
-| `email_injection` | Email headers or body constructed from user input |
-| `prompt_injection` / `insecure_output_handling` | LLM API call or RAG pipeline with user-controlled prompt content |
-| `file_upload` | Multipart upload endpoint that writes files to disk or object storage |
-| `brute_force_login` / `csrf` | Login, password-reset, or session-mutation endpoint |
-| `jwt` | Endpoint that decodes or validates a JWT token |
-| `graphql_introspection` | GraphQL resolver or schema endpoint |
-| `sqli`, `xss` | Search, filter, or query endpoint with user-supplied parameters |
-| `id_enumeration`, `bopla`, `excessive_data_exposure` | Resource lookup by a numeric or sequential ID in path or query |
+| `secret_tokens` | Responses, static files, or downloaded artifacts may expose keys/tokens/secrets (`api_key`, `token`, `secret`, cloud creds, `.env`-like content). |
+| `full_path_disclosure` | Error handling may leak server paths (debug mode, stack traces, exception pages, file operation errors, template/runtime errors). |
+| `http_method_fuzzing` | Endpoint or server accepts/advertises risky verbs (`PUT`, `PATCH`, `DELETE`, `TRACE`, `OPTIONS`) beyond intended contract. |
+| `version_control_systems` | Public web root/static hosting may expose `.git`, `.svn`, `.hg`, backup metadata, or VCS artifacts. Treat as host-surface check, not business-endpoint check. |
+| `open_cloud_storage` | Code/config/responses reference cloud bucket/container URLs (S3/GCS/Azure Blob) or user-controlled bucket paths. |
+| `cve_test` | Dependency fingerprinting is possible (lockfiles, package manifests, server banners, component versions). Treat as host-level check and run once per host. |
+| `sqli` | SQL query text or ORM filters/order/raw expressions include user-controlled input without strict parameterization/allow-listing. |
+| `xss` | Untrusted input is reflected into HTML/JS/DOM contexts without context-aware encoding. |
+| `stored_xss` | Untrusted input is persisted and later rendered in HTML/JS/DOM without safe encoding. |
+| `ssti` | User-controlled input reaches server-side template evaluation (template string compilation/rendering). |
+| `osi` | User input reaches command execution primitives (`exec`, `spawn`, `system`, `popen`, shell wrappers). |
+| `lfi` | User-controlled path reaches local file read/include/open operations. |
+| `rfi` | User-controlled URL/path reaches remote include/fetch/execute mechanisms. |
+| `ssrf` | Backend HTTP client target URL/host/port/protocol can be influenced by user input. |
+| `xxe` | XML parser processes user-controlled XML and secure entity/DTD restrictions are missing or unclear. |
+| `xpathi` | XPath expression/query is built using user input. |
+| `ldapi` | LDAP filter/query string is built from user input. |
+| `unvalidated_redirect` | Redirect destination (`Location`, `redirect`, `next`, `returnUrl`) is derived from user input without strict allow-list. |
+| `server_side_js_injection` | Dynamic JS execution (`eval`, `Function`, `vm.*`, dynamic `require/import`) takes user-controlled data. |
+| `proto_pollution` | Untrusted object keys merge into shared objects/prototypes (`__proto__`, `constructor`, deep merge helpers). |
+| `email_injection` | Mail headers (`To`, `Cc`, `Bcc`, `Subject`, custom headers) are composed from untrusted input. |
+| `prompt_injection` | LLM prompt or tool-invocation context includes untrusted content (RAG docs, user input, external pages) without hard boundaries. |
+| `insecure_output_handling` | LLM output is rendered to HTML/DOM/Markdown-rich UI without strict sanitization/escaping. |
+| `file_upload` | Multipart/file endpoints accept user files and store/process/serve them without strict extension, MIME, and content validation. |
+| `brute_force_login` | Non-authenticated credential login endpoint accepts password auth and lacks strong lockout/rate-limit/CAPTCHA evidence. |
+| `csrf` | Authenticated state-changing endpoint relies on cookie/session auth and lacks robust CSRF controls (token/origin/referrer/samesite enforcement). |
+| `jwt` | JWT bearer/session token validation is implemented or accepted by endpoint (header/claim/signature handling in scope). |
+| `graphql_introspection` | Reachable GraphQL endpoint/schema route exists (`/graphql`, GraphQL POST handler, resolver chain). |
+| `id_enumeration` | Resource lookup uses predictable IDs and responses differ between valid/invalid IDs enough to enumerate objects. |
+| `bopla` | API accepts object-property mutation where client can set sensitive/internal fields (`role`, `isAdmin`, ownership, flags). |
+| `excessive_data_exposure` | Backend returns broad object payloads where client/UI filters sensitive fields instead of server-side minimization. |
+
+**Step 2B — Burden-aware guardrails (from test metadata):**
+
+- Very high-cost tests must require strong evidence and isolated scan units:
+    - `brute_force_login` (`entrypoint_requests.per_entrypoint=3000`)
+    - `id_enumeration` (`entrypoint_requests.per_param=2000`)
+- High-cost tests should be limited to endpoints with concrete exploitability signals:
+    - `full_path_disclosure` (`per_param=100`, `per_entrypoint=20`)
+    - injection-class tests such as `sqli`, `xss`, `stored_xss`, `ssti`, `osi`, `lfi`, `rfi`, `ssrf`, `xxe`, `xpathi`, `ldapi`, `server_side_js_injection`, `proto_pollution`, `prompt_injection` (`per_param` typically 20-50)
+- Host-level heavy checks should run once per host:
+    - `cve_test` (`entrypoint_requests.per_host=100`)
+    - `jwt` when discovery is host-wide (`entrypoint_requests.per_host=100`)
 
 **Step 3 — Exclusions (always):**
 Never assign `lrrl`, `header_security`, `cookie_security`, or `broken_access_control` unless the environment can safely coordinate multiple auth contexts.
 
 **Step 4 — Output:**
-Produce a per-endpoint map `{ endpoint, tests[], attackLocations[] }`. Endpoints with no code evidence beyond the baseline receive only baseline tests. Log the rationale for each non-baseline test so the decision is auditable.
+Produce a per-endpoint map `{ endpoint, tests[], attackLocations[] }`. Endpoints with no code evidence should keep an empty test set (or be skipped from active scanning when appropriate). Log the rationale for each assigned test so the decision is auditable.
 
 ### Phase 8: Run Atomic Scans Sequentially and Keep the Target Healthy
 
@@ -352,6 +374,7 @@ Always do cleanup, even on failure.
 - Stop the application or harness process.
 - Stop temporary standalone infrastructure started only for harness mode.
 - Remove temporary artifacts if you created them.
+- Revert temporary source or config changes introduced only for scan-prep or operability when they are not security fixes, and keep only validated security remediations.
 
 ## Definition of Done
 
