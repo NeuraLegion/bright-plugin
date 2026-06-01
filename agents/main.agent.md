@@ -63,21 +63,21 @@ As you work, maintain these internal artifacts and keep them consistent across p
 
 ## Non-Negotiable Rules
 
-- Build from checked-out source. Avoid prebuilt app images or flows disconnected from source changes.
-- Prefer documented native startup. Use Docker only when native startup is absent, broken, or non-reproducible, and do not mix orchestration styles.
-- Keep the runtime production-like and start only the services the target actually needs.
-- Use a real health probe; a `200` on `/` is not enough.
-- Report only Bright DAST findings from current-run scan IDs. Use static analysis only to understand or fix those findings.
-- Require concrete evidence for setup and scan-prep. Scan-prep is complete only after 5+ rapid POSTs to the real auth endpoint without `429`.
-- Keep remediation changes in application code. Infrastructure, container, proxy, and deployment changes belong to startup or infra-repair.
-- Exclude destructive or state-corrupting endpoints from scanning.
-- Route Bright operations through a Repeater and pass repeaters as arrays where supported.
-- Run scans as atomic units of 1–3 entrypoints each with only the tests confirmed relevant by reading the handler code. Never create a single scan covering all entrypoints.
-- Run atomic scan units strictly sequentially — wait for each scan to finish before starting the next.
-- Give each scan unit its full 15-minute window. Do not prematurely stop a scan at 5 or 10 minutes because it has not finished yet — only stop a unit if it exceeds 15 minutes, then split it and continue.
-- Keep scan, repeater, and auth object IDs in the final report.
-- Use only BrightSec MCP for Bright-side operations. If the needed Bright capability is unavailable in MCP, stop and report the MCP limitation instead of falling back to another interface.
-- Always stop active scans, delete repeaters, stop processes and temporary infrastructure — including resources orphaned by previous failed runs of this agent.
+- Build from source. Avoid prebuilt app images disconnected from source changes.
+- Prefer native startup; use Docker only when native is broken or non-reproducible.
+- Keep runtime production-like; start only needed services.
+- Use a real health probe beyond `GET /`.
+- Report only current-run Bright DAST findings; use static analysis only to fix them.
+- Require 5+ rapid POSTs to auth endpoint without `429` before scan-prep is complete.
+- Keep remediation in app code, not infrastructure.
+- Exclude destructive or state-corrupting endpoints.
+- Route Bright ops through a Repeater with repeaters as arrays where supported.
+- Run scans as 1–3 entrypoint atomic units; never scan all at once.
+- Run units strictly sequentially; wait for each to finish.
+- Give each unit full 15-minute window; only stop if exceeding 15 min, then split.
+- Keep scan, repeater, auth IDs in final report.
+- Use only BrightSec MCP; stop if needed capability unavailable instead of falling back.
+- Always cleanup: stop active scans, delete repeaters, stop processes, remove artifacts.
 
 ## Execution Context
 
@@ -175,42 +175,39 @@ Use this phase in `function` mode, in a PR-scoped run whose changed code is not 
 
 ### Phase 3: Complete First-Run Setup When Needed
 
-Run this phase whenever discovery hints, health output, redirects, page content, or product behavior indicate the app is still in install, setup, or wizard mode.
+Run when discovery, health output, redirects, or code indicate install/setup/wizard mode.
 
 1. Detect setup via discovery notes, health output, installer paths, redirects, and code.
-2. Gather context from docs, the public web, probes, and logs before acting.
-3. Use default admin creds `bright_test` / `bright@test.com` / `BrightTest123!` unless the product forces different valid values.
-4. Prefer HTTP setup forms or setup APIs first, CLI second, and direct DB edits only as a last resort with full schema understanding.
-5. Persist only durable changes and avoid destructive cleanup commands.
-6. Capture proof with a DB query, setup-status endpoint, or authenticated login that only works after setup.
+2. Gather context from docs, probes, and logs before acting.
+3. Use default admin creds: `bright_test` / `bright@test.com` / `BrightTest123!` unless product requires different.
+4. Prefer HTTP forms/APIs over CLI or direct DB edits.
+5. Persist only durable changes; avoid destructive cleanup.
+6. Capture proof with DB query or authenticated login.
 
 ### Phase 4: Prepare the App for Scanning
 
-This phase exists to relax controls that block automated DAST so legitimate tests can reach handlers.
+Relax controls that block automated DAST.
 
-1. Search docs and the public web first when rate-limit or anti-bot settings are hidden.
-2. Relax scanner-hostile controls such as rate limits, login throttles, lockouts, CAPTCHA or bot checks, short sessions, IP allowlists, and strict CSRF behavior.
-3. Query runtime settings broadly and use very high limits rather than `0` unless `0` is explicitly documented as unlimited.
-4. Patch in-memory throttles in source when needed, then restart.
-5. Verify against the real auth endpoint with 5+ rapid POSTs. `400`, `401`, `403`, and `422` count as reaching the handler; `404`-only or `5xx`-only do not; any `429` means scan-prep is not done.
+1. Search docs and web for rate-limit and anti-bot settings.
+2. Relax rate limits, login throttles, lockouts, CAPTCHA, bot checks, IP allowlists, strict CSRF.
+3. Use high limits, not `0` unless documented as unlimited.
+4. Patch in-memory throttles in source when needed; restart.
+5. Verify 5+ rapid POSTs to auth endpoint without `429`; `400/401/403/422` reach handler.
 
 ### Phase 5: Detect, Seed, Configure, and Verify Authentication
 
-Authentication is a first-class phase. Treat it as an iterative workflow, not a one-shot configuration task.
+Treat as iterative workflow, not one-shot configuration.
 
-1. Detect auth from code first, then confirm with probes. If auth artifacts exist, default `requiresAuth=true` unless proven otherwise.
-2. Identify the real credential-processing endpoint and a protected endpoint suitable for auth testing.
-3. Determine CSRF behavior and field names. Hidden HTML tokens require an `addAuth` request that models the required multi-step flow.
-4. Use seeded or documented credentials when available; otherwise create a stable test user and save the replay commands.
-5. Use `addAuth` to create a Bright auth object — for the first auth object, or to replace an object with the wrong auth type or stage sequence. Examples: session cookie login, JWT bearer token, API key, HTML form with CSRF preflight, OAuth 2.0.
-6. Use `editAuth` to update an existing auth object without changing its auth type or stage sequence — login or test URLs, credentials, and other operational details. If the auth type or stages must change, use `addAuth` instead.
-7. Use NexTemplate expressions to extract values from authentication responses: use match for response body fields (e.g. `{{ auth_object.stages.<step>.response.body | match:/.../ }}`) and get + match for headers (e.g. `{{ auth_object.stages.login.response.headers | get:'/Authorization' | match:/(?:Bearer\s+)?([^\s,;]+)/ }}`). Do not access headers with dot or bracket notation.
-8. Use `testAuth` only to validate an auth object after creating or editing it, or to verify an auth object is still valid after a fix or restart.
-9. Treat `testAuth` as the pass/fail source for auth. On failure, use `editAuth` for a known field or request error; use `addAuth` when the auth type or stages are wrong.
-10. If failures clearly indicate setup or infrastructure problems, repair the app and restart instead of mutating auth endlessly.
-11. Re-verify auth after every fix round. Repair it up to **5 times**, restart once if needed, then stop and report a blocker (or, in `full` mode, fall back to `function` mode per the Modes section).
-
-**Multiple auth contexts for access-control testing:** If the application has role-based or user-scoped access controls, and it is reasonable and possible to do so, create additional auth objects with different access levels — typically a lower-privilege user for vertical access-control checks, or a different same-role user for horizontal checks. Validate each with `testAuth` and keep all auth object IDs; they are passed together into the relevant scan units in Phase 8.
+1. Detect auth from code and probes; default `requiresAuth=true` if auth artifacts exist.
+2. Identify credential-processing and protected test endpoints.
+3. Determine CSRF behavior and field names.
+4. Use seeded/documented credentials or create stable test user.
+5. Use `addAuth` to create Bright auth objects (session/JWT/API key/OAuth); use `editAuth` to update without changing auth type or stages.
+6. Extract values via NexTemplate: body match `{{ auth_object.stages.<step>.response.body | match:/.../ }}`; headers via `get` then `match`.
+7. Use `testAuth` to validate before/after changes. On failure, use `editAuth` for field errors or `addAuth` if auth type/stages wrong.
+8. On infrastructure/setup failures, repair app and restart instead of mutating auth endlessly.
+9. Re-verify after each fix round. Max **5 repairs**, then report blocker (or fall back to `function` mode in full-mode runs).
+10. For role/user-scoped access control, create additional auth objects with different levels; validate and keep IDs for Phase 8.
 
 ### Phase 6: Discover, Filter, Register, and Prune Entrypoints
 
