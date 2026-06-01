@@ -82,7 +82,7 @@ The agent frontmatter is the source of truth for the shipped Bright MCP configur
 
 ## Authentication
 
-MCP access is configured under the `bright` and `cli` servers in the `mcp-servers` frontmatter block of `agents/main.agent.md` and uses OIDC workload identity federation:
+MCP access is configured under the `bright` server in the `mcp-servers` frontmatter block of `agents/main.agent.md` and uses OIDC workload identity federation. A secondary `cli` server entry is also provided in the same block:
 
 - MCP URL: `https://cloud.brightsec.com/mcp`
 - OIDC audience: `https://brightsec.com/agents/github`
