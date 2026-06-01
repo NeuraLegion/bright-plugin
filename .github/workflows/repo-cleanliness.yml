@@ -1,0 +1,35 @@
+name: Repository Cleanliness
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  repo-cleanliness:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate JSON files
+        run: |
+          while IFS= read -r -d '' file; do
+            echo "Validating $file"
+            python3 -m json.tool "$file" > /dev/null || exit 1
+          done < <(find . -name "*.json" -not -path "./node_modules/*" -type f -print0)
+
+      - name: Validate YAML files
+        run: |
+          python3 -m pip install --disable-pip-version-check pyyaml
+          while IFS= read -r -d '' file; do
+            echo "Validating $file"
+            python3 -c "import sys, yaml; yaml.safe_load(open(sys.argv[1], 'rb'))" "$file" || exit 1
+          done < <(find . -type f \( -name "*.yml" -o -name "*.yaml" \) -not -path "./node_modules/*" -print0)
+
+      - name: Validate shell scripts
+        run: |
+          while IFS= read -r -d '' file; do
+            echo "Checking syntax of $file"
+            bash -n "$file" || exit 1
+          done < <(find . -name "*.sh" -type f -print0)

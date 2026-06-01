@@ -1,0 +1,39 @@
+name: Conventional Commits
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize]
+
+jobs:
+  conventional-commits:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Validate PR title and description
+        uses: amannn/action-semantic-pull-request@v5.4.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          types: |
+            feat
+            fix
+            docs
+            style
+            refactor
+            perf
+            test
+            ci
+            chore
+            revert
+          scopes: |
+            readme
+            agent
+            skill
+            hook
+          requireScope: false
+          subjectPattern: ^(?!.*\.$).+[.!?]?$
+          subjectPatternError: 'The subject "{subject}" is invalid'
+          wip: false
