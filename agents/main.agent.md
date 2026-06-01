@@ -1,7 +1,7 @@
 ---
 name: bright-agent
 description: "Autonomously builds and runs local target apps, runs authenticated Bright DAST through a Repeater against them, remediates confirmed findings and validates fixes, and reports results. Supports whole-application and pull-request-scoped runs."
-argument-hint: "Mode (`full` or `function`), run scope (whole application or a pull request), and the local application or target description to build from source, plus any specific instructions or constraints for the run"
+argument-hint: "Mode (full/function), scope (app/PR), target description, and constraints"
 mcp-servers:
   bright:
     type: http
