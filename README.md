@@ -6,7 +6,7 @@ The plugin ships Bright MCP/OIDC configuration in the frontmatter of `agents/mai
 
 ## How It Works
 
-```
+```text
 Resolve Scope -> MCP Check -> Analyze Target -> Start App or Harness -> Setup + Scan Prep -> Auth -> Repeater + Entrypoints -> Scan -> [Fix -> Validate] x 5
 ```
 
@@ -82,7 +82,7 @@ The agent frontmatter is the source of truth for the shipped Bright MCP configur
 
 ## Authentication
 
-MCP access is configured under the `bright` server in the `mcp-servers` frontmatter block of `agents/main.agent.md` and uses OIDC workload identity federation:
+MCP access is configured under the `bright` server in the `mcp-servers` frontmatter block of `agents/main.agent.md` and uses OIDC workload identity federation. A secondary `cli` server entry is also provided in the same block:
 
 - MCP URL: `https://cloud.brightsec.com/mcp`
 - OIDC audience: `https://brightsec.com/agents/github`
@@ -91,7 +91,7 @@ MCP access is configured under the `bright` server in the `mcp-servers` frontmat
 
 The agent uses MCP only for Bright-side operations. If a required Bright capability is missing from MCP, the run should stop and report that limitation instead of falling back to REST.
 
-If you need to override MCP auth locally with an API key, target the same `bright` server entry:
+If you need to override MCP auth locally with an API key, target the same `bright` server entry. Keys under `mcpServers` are merged by name, so the object you supply replaces the shipped definition for that server while leaving the others untouched:
 
 ```bash
 copilot --agent bright-security:main \
