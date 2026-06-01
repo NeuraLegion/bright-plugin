@@ -14,10 +14,10 @@ jobs:
 
       - name: Validate JSON files
         run: |
-          for file in $(find . -name "*.json" -not -path "./node_modules/*"); do
+          while IFS= read -r -d '' file; do
             echo "Validating $file"
             python3 -m json.tool "$file" > /dev/null || exit 1
-          done
+          done < <(find . -name "*.json" -not -path "./node_modules/*" -type f -print0)
 
       - name: Validate YAML files
         run: |
