@@ -6,7 +6,7 @@ The plugin ships Bright MCP/OIDC configuration in the frontmatter of `agents/mai
 
 ## How It Works
 
-```text
+```
 Resolve Scope -> MCP Check -> Analyze Target -> Start App or Harness -> Setup + Scan Prep -> Auth -> Repeater + Entrypoints -> Scan -> [Fix -> Validate] x 5
 ```
 
