@@ -29,7 +29,7 @@ jobs:
 
       - name: Validate shell scripts
         run: |
-          for file in $(find . -name "*.sh" -type f); do
+          while IFS= read -r -d '' file; do
             echo "Checking syntax of $file"
             bash -n "$file" || exit 1
-          done
+          done < <(find . -name "*.sh" -type f -print0)
