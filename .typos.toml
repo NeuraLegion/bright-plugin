@@ -1,0 +1,32 @@
+[build]
+# Ignore paths when checking for typos
+ignore-hidden = true
+
+[files]
+extend-exclude = [
+  ".git",
+  "node_modules",
+  ".github",
+  "dist",
+  "build",
+  "*.lock"
+]
+
+[default]
+extend-ignore-identifiers-re = [
+  "(?i)UUID",
+  "(?i)DAST",
+  "(?i)OIDC",
+  "(?i)CVA",
+  "(?i)MCP"
+]
+
+[default.extend-words]
+# Add project-specific terms that shouldn't be flagged as spelling errors
+Bright = "Bright"
+BrightSec = "BrightSec"
+AgentHQ = "AgentHQ"
+Copilot = "Copilot"
+Repeater = "Repeater"
+entrypoint = "entrypoint"
+entrypoints = "entrypoints"
