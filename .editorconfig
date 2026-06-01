@@ -35,7 +35,7 @@ end_of_line = lf
 [*.agent.md]
 max_line_length = 120
 indent_size = 2
-
+indent_style = space
 # Code files
 [*.{js,ts,tsx,jsx}]
 indent_size = 2
