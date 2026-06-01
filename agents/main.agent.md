@@ -61,7 +61,7 @@ As you work, maintain these internal artifacts and keep them consistent across p
 - `setupEvidence`, `scanPrepReplay`: proof that setup completed and the exact changes or commands needed to replay scan-prep after restart.
 - `authDetection`, `authHints`, `seedCommands`: auth model, login/test endpoints, token extraction, durable hints, and test-user creation or repair commands.
 - `registeredEntrypoints`, `scanGroups`, `scanIds`: registered attack surface, the per-endpoint test map and ordered list of atomic scan units, and every scan ID created in this run.
-- `allFindings`, `brightIssueLinks`, `fixedKeys`: deduplicated current-run findings, Bright Cloud issue links, and findings verified fixed in later rounds.
+- `allFindings`, `brightVulnerabilityLinks`, `fixedKeys`: deduplicated current-run findings, Bright Cloud vulnerability links, and findings verified fixed in later rounds.
 
 ## Non-Negotiable Rules
 
@@ -311,10 +311,10 @@ Do NOT create one large scan for all entrypoints. Run small, focused scans one a
 
 ### Phase 9: Fetch Findings From the Current Run Only
 
-1. Fetch findings by scan ID, using the current run's scan IDs only. Do not use a project-wide issue list that may contain stale findings.
+1. Fetch findings by scan ID with `listScanVulnerabilities` (or `getScanVulnerability` for a single finding), using the current run's scan IDs only. Do not use the project-wide `listVulnerabilities` list, which may contain stale findings from earlier runs.
 2. Deduplicate across groups by the effective finding key (usually vulnerability name plus method and URL).
 3. Build the current-round summary: severity counts; new findings versus previously validated fixes; which scans failed, if any.
-4. Resolve Bright Cloud issue references for each surviving deduplicated finding, and persist the Bright issue ID and direct Bright Cloud URL for the report. If BrightSec MCP does not expose the needed issue lookup, stop and report the missing MCP capability.
+4. Resolve each surviving deduplicated finding to its Bright Cloud vulnerability with `getScanVulnerability`, and persist the vulnerability ID and direct Bright Cloud URL for the report. If BrightSec MCP does not expose the needed vulnerability lookup, stop and report the missing MCP capability.
 
 ### Phase 10: Remediation and Validation Loop (default)
 
@@ -341,7 +341,7 @@ Always end with a clear, user-facing report. Write it for a human reading a run 
 - Number of registered/scanned entrypoints.
 
 **3. Findings** — for each finding: title, severity, affected method + endpoint, a one-line plain-language impact, and a direct Bright Cloud link using:
-`https://cloud.brightsec.com/projects/{projectId}/scans/{scanId}/issues/{issueId}`
+`https://cloud.brightsec.com/projects/{projectId}/scans/{scanId}/issues/{vulnerabilityId}`
 Include a severity count summary (critical/high/medium/low).
 
 **4. Remediation** — what changed and what remains:
@@ -374,7 +374,7 @@ Always do cleanup, even on failure.
 
 The task is complete only when one of these is true:
 
-- **Whole-application `full` run:** the pipeline completed and either the latest validation round has zero remaining findings, or all 5 remediation rounds were completed with the exact remaining findings reported. All artifacts and Bright Cloud issue links are reported.
+- **Whole-application `full` run:** the pipeline completed and either the latest validation round has zero remaining findings, or all 5 remediation rounds were completed with the exact remaining findings reported. All artifacts and Bright Cloud vulnerability links are reported.
 - **PR-scoped run:** the affected endpoints (full mode) or harnessed changed functions (function mode) were scanned, the remediation loop ran, and remaining findings plus the PR-to-endpoint mapping are reported.
 - **`function`-mode run:** the harness scan and remediation loop completed and the limited, isolated scope is clearly labeled in the report.
 - **Explicit scan-only request:** the scan, user-facing findings report, and gate verdict are complete (remediation loop intentionally skipped).
