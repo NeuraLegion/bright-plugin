@@ -64,24 +64,6 @@ copilot --plugin-dir /path/to/bright-plugin \
   -i "Run a full Bright scan against this application"
 ```
 
-#### Overriding the MCP servers locally
-
-The agent ships two MCP servers in the `mcp-servers` frontmatter of `agents/main.agent.md`: the hosted
-`bright` HTTP server and the `cli` stdio server (`@brightsec/cli`). Both default to OIDC. During local
-development you can override either entry with `--additional-mcp-config` without editing the agent file,
-for example to point at a different Bright environment or to swap OIDC for an API key:
-
-```bash
-copilot --plugin-dir /path/to/bright-plugin \
-  --agent bright-security:main \
-  --additional-mcp-config '{"mcpServers":{"bright":{"type":"http","url":"https://cloud.brightsec.com/mcp","headers":{"Authorization":"Api-Key YOUR_KEY"}}}}' \
-  -i "Run a full Bright scan against this application"
-```
-
-Keys under `mcpServers` are merged by name, so the `bright` (or `cli`) object you supply replaces the
-shipped definition for that server while leaving the others untouched. See [Authentication](#authentication)
-for the override that swaps OIDC for an API key.
-
 You can steer the mode and scope with the prompt, for example:
 
 - `Run in function mode and scan the selected backend functions through a harness.`
@@ -109,7 +91,7 @@ MCP access is configured under the `bright` and `cli` servers in the `mcp-server
 
 The agent uses MCP only for Bright-side operations. If a required Bright capability is missing from MCP, the run should stop and report that limitation instead of falling back to REST.
 
-If you need to override MCP auth locally with an API key, target the same `bright` server entry:
+If you need to override MCP auth locally with an API key, target the same `bright` server entry. Keys under `mcpServers` are merged by name, so the object you supply replaces the shipped definition for that server while leaving the others untouched:
 
 ```bash
 copilot --agent bright-security:main \
