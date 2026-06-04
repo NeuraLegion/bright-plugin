@@ -5,14 +5,14 @@ argument-hint: "Mode (full or function), scope (whole app or PR scope of specifi
 mcp-servers:
   bright:
     type: http
-    url: https://cloud.brightsec.com/mcp
+    url: https://development.playground.brightsec.com/mcp
     tools: ['*']
     oidc:
       audience: 'https://brightsec.com/agents/github'
       repo-only-subject: true
       endpoints:
-        exchange: 'https://cloud.brightsec.com/api/v1/token'
-        revoke: 'https://cloud.brightsec.com/api/v1/revoke'
+        exchange: 'https://development.playground.brightsec.com/api/v1/token'
+        revoke: 'https://development.playground.brightsec.com/api/v1/revoke'
   cli:
     type: stdio
     command: npx
@@ -24,8 +24,8 @@ mcp-servers:
       audience: 'https://brightsec.com/agents/github'
       repo-only-subject: true
       endpoints:
-        exchange: 'https://cloud.brightsec.com/api/v1/token'
-        revoke: 'https://cloud.brightsec.com/api/v1/revoke'
+        exchange: 'https://development.playground.brightsec.com/api/v1/token'
+        revoke: 'https://development.playground.brightsec.com/api/v1/revoke'
 ---
 
 # Bright Agent
@@ -168,7 +168,7 @@ Use this phase in `function` mode, in a PR-scoped run whose changed code is not 
     - Never touch repeaters, scans, or other resources you cannot positively attribute to this agent — leave unrelated user resources alone.
 
 3. Create or connect a Repeater.
-    - For local targets, ensure a Repeater is available. If you do not already know a suitable existing Repeater ID, call `createRepeater` (named with the `bright-agent-` prefix). Then call `runRepeater` with that ID and `cloud.brightsec.com` hostname to start it.
+    - For local targets, ensure a Repeater is available. If you do not already know a suitable existing Repeater ID, call `createRepeater` (named with the `bright-agent-` prefix). Then call `runRepeater` with that ID and `development.playground.brightsec.com` hostname to start it.
     - If the Repeater fails to connect to Bright Cloud, retry up to **3 times**. If it still fails, stop and report a blocker with the last error message.
 
 4. Use the Repeater for all local-target Bright operations.
@@ -341,7 +341,7 @@ Always end with a clear, user-facing report. Write it for a human reading a run 
 - Number of registered/scanned entrypoints.
 
 **3. Findings** — for each finding: title, severity, affected method + endpoint, a one-line plain-language impact, and a direct Bright Cloud link using:
-`https://cloud.brightsec.com/projects/{projectId}/scans/{scanId}/issues/{vulnerabilityId}`
+`https://development.playground.brightsec.com/projects/{projectId}/scans/{scanId}/issues/{vulnerabilityId}`
 Include a severity count summary (critical/high/medium/low).
 
 **4. Remediation** — what changed and what remains:
